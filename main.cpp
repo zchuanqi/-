@@ -7,5 +7,7 @@ int main(int argc, char *argv[])
     Widget w;
     w.show();
 
+    ssssssssss
+
     return a.exec();
 }
