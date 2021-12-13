@@ -25,10 +25,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        widget.cpp
+        widget.cpp \
+    addressbook.cpp \
+    group.cpp \
+    addressbookmanager.cpp \
+    personintree.cpp \
+    person.cpp \
+    util.cpp
 
 HEADERS += \
-        widget.h
+        widget.h \
+    addressbook.h \
+    group.h \
+    addressbookmanager.h \
+    personintree.h \
+    person.h \
+    util.h
 
 FORMS += \
         widget.ui
