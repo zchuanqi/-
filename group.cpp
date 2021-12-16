@@ -55,7 +55,7 @@ QStringList Group::getPersonNameList()
     QStringList nameList;
     Person *p=persons;
     while(p!=NULL){
-        nameList.append(p->name);
+        nameList.append(p->name+" "+p->phone);
         p=p->next;
     }
     return nameList;
@@ -81,7 +81,7 @@ bool Group::createPerson(QString name, int age,int sex, QString phone, QString a
     else{
         Person *p=persons;                              //从头结点开始
         Person *pre=p;    //用来记录当前结点的前驱
-        while((p->name.compare(aPerson->name)<0)&&p!=NULL){     //当前结点小于待插入结点时继续后移（关键字是name）
+        while(p!=NULL&&(p->name.compare(aPerson->name)<0)){     //当前结点小于待插入结点时继续后移（关键字是name）
             pre=p;
             p=p->next;
         }
@@ -129,7 +129,8 @@ bool Group::deletePerson(int index)
     //删头结点
     if(index==0){
         Person *p=persons;
-        persons=persons->next;
+        persons=p->next;
+        delete(p);
         num--;
         return true;
     }

@@ -1,5 +1,6 @@
 #include "addressbook.h"
 #include"util.h"
+#include<qdebug.h>
 
 AddressBook::AddressBook(QString name)
 {
@@ -71,6 +72,20 @@ Group *AddressBook::getGroup(int index)
     }
 }
 
+//返回群组下标
+int AddressBook::getGroupIndex(QString name)
+{
+    Group *p=groups;
+    int index=-1;
+    while(p!=NULL){
+        index++;
+        if(p->name.compare(name)==0)
+            return index;
+        p=p->next;
+    }
+    return -1;
+}
+
 //新建群组
 bool AddressBook::createGroup(QString name)
 {
@@ -126,9 +141,13 @@ bool AddressBook::createPerson(QString name, int age,int sex, QString phone, QSt
     if(aPerson==NULL){          //创建失败
         return false;
     }
-    PersonInTree *tree;
-    if(firstLetter.isLetter())  //是字母
-        tree=hashTable[firstLetter.unicode()-64];  //在哈希表中找到首字母对应的二叉排序树
+    PersonInTree *tree=NULL;
+    if(firstLetter.isLetter()){ //是字母
+        if(firstLetter.isUpper())
+            tree=hashTable[firstLetter.unicode()-64];  //在哈希表中找到首字母对应的二叉排序树
+        else
+            tree=hashTable[firstLetter.toUpper().unicode()-64];
+    }
     else        //不是字母
         tree=hashTable[0];       //放到第一个哈希值中
     if(tree->lchild==tree){                 //树为空，直接作为根结点（头结点左孩子）
@@ -216,8 +235,12 @@ void AddressBook::InThreading(PersonInTree *p)
 PersonInTree *AddressBook::searchPerson(QString name)
 {
     QChar firstLetter=Util::getFirstLetter(name);
-    if(firstLetter.isLetter())
-        treeIndex=firstLetter.unicode()-64;
+    if(firstLetter.isLetter()){
+        if(firstLetter.isUpper())
+            treeIndex=firstLetter.unicode()-64;
+        else
+            treeIndex=firstLetter.toUpper().unicode()-64;
+    }
     else
         treeIndex=0;
     PersonInTree *T=hashTable[treeIndex];    //根据首字母确定在哪棵树中
@@ -420,12 +443,38 @@ QStringList AddressBook::getPersonNameList()
             while(p->lTag==0)       //找到最左下的结点，起点
                 p=p->lchild;
             while(p->rTag==1&&p->rchild!=T){    //有线索就一直往后走
-                nameList.append(p->name);
+                nameList.append(p->name+" "+p->phone);
                 p=p->rchild;
             }
-            nameList.append(p->name);
+            nameList.append(p->name+" "+p->phone);
             p=p->rchild;    //没线索，从右孩子开始继续走
         }
     }
     return nameList;
+}
+
+//根据姓名或电话得到联系人列表
+QStringList AddressBook::searchPersons(QString str)
+{
+    QStringList list;
+    //遍历哈希表，将姓名或电话与str匹配的联系人加入列表
+    for(int i=0;i<27;i++){
+        PersonInTree *T=hashTable[i];
+        PersonInTree *p=T->lchild;
+        while(p!=T){
+            while(p->lTag==0)
+                p=p->lchild;
+            while(p->rTag==1&&p->rchild!=T){
+                if(Util::KMP(p->name,str)||Util::KMP(p->phone,str)){
+                    list.append(p->name+" "+p->phone);
+                }
+                p=p->rchild;
+            }
+            if(Util::KMP(p->name,str)||Util::KMP(p->phone,str)){
+                list.append(p->name+" "+p->phone);
+            }
+            p=p->rchild;
+        }
+    }
+    return list;
 }

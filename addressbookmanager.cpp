@@ -1,4 +1,9 @@
 #include "addressbookmanager.h"
+#include<qdebug.h>
+#include<QTemporaryFile>
+#include<QTextStream>
+#include"util.h"
+#include<QTextCodec>
 
 AddressBookManager::AddressBookManager()
 {
@@ -22,11 +27,11 @@ AddressBook *AddressBookManager::getAddressBook(int index)
 }
 
 //创建新的通讯录，name为名字
-bool AddressBookManager::createAddressBook(QString name)
+AddressBook* AddressBookManager::createAddressBook(QString name)
 {
     AddressBook *aBook=new AddressBook(name);   //新建的通讯录
     if(aBook==NULL){                            //创建失败，返回false
-        return false;
+        return NULL;
     }
     if(this->books==NULL){                            //如果当前没有通讯录则直接赋值给头结点
         this->books=aBook;
@@ -39,7 +44,7 @@ bool AddressBookManager::createAddressBook(QString name)
         p->next=aBook;
     }
     num++;
-    return true;                                //添加成功，返回true
+    return aBook;                                //添加成功，返回true
 }
 
 //删除一张通讯录，index为索引，即在顶部Tab中的位置，从0开始
@@ -181,8 +186,102 @@ QStringList AddressBookManager::getPersonList(int bookIndex, int groupIndex)
     return list;
 }
 
+//根据名字或电话查找联系人列表（含关键字序列的就算）
+QStringList AddressBookManager::searchPerson(int bookIndex,QString str)
+{
+    QStringList list;
+    AddressBook *book=getAddressBook(bookIndex);
+    if(book==NULL)
+        return list;
+    list=book->searchPersons(str);
+    return list;
+}
+
 //保存下标为bookIndex的通讯录，path为目标文件路径
-void AddressBookManager::saveAddressBook(int bookIndex, QString path)
+bool AddressBookManager::saveAddressBook(int bookIndex, QString path)
 {
     AddressBook *book=getAddressBook(bookIndex);
+    if(book==NULL)
+        return false;
+    QFile file(path);   //文件
+    if(!file.open(QIODevice::WriteOnly|QIODevice::Text))    //只写，文本格式打开
+        return false;
+    QTextStream stream(&file);  //文本IO流
+    //将群组写入
+    stream<<book->groupsNum<<endl;  //先写入群组数量
+    Group *gp=book->groups;
+    while(gp!=NULL){
+        stream<<gp->name<<endl;
+        gp=gp->next;
+    }
+    //遍历哈希表，将所有联系人信息写入
+    stream<<book->num<<endl;        //联系人数量
+    for(int i=0;i<27;i++){
+        PersonInTree *T=book->hashTable[i];
+        PersonInTree *p=T->lchild;
+        while(p!=T){
+            while(p->lTag==0)
+                p=p->lchild;
+            while(p->rTag==1&&p->rchild!=T){
+                //写入联系人信息
+                stream<<p->name<<endl;
+                stream<<p->age<<endl;
+                stream<<p->sex<<endl;
+                stream<<p->phone<<endl;
+                stream<<p->area<<endl;
+                stream<<p->remark<<endl;
+                //该联系人有群组，将群组名存入
+                if(p->group!=NULL)
+                    stream<<p->group->name<<endl;
+                //该联系人无群组，写入"$"表示没有群组
+                else
+                    stream<<QString("$")<<endl;
+                p=p->rchild;
+            }
+            stream<<p->name<<endl;
+            stream<<p->age<<endl;
+            stream<<p->sex<<endl;
+            stream<<p->phone<<endl;
+            stream<<p->area<<endl;
+            stream<<p->remark<<endl;
+            if(p->group!=NULL)
+                stream<<p->group->name<<endl;
+            else
+                stream<<QString("$")<<endl;
+            p=p->rchild;
+        }
+    }
+    file.close();   //关闭
+    //加密
+    Util::encryption(path);
+    return true;
+}
+
+//导入文件
+bool AddressBookManager::importAddressBook(QString path)
+{
+    AddressBook *book=createAddressBook(path.split('/').last());  //创建通讯录
+    if(book==NULL)
+        return false;
+    QList<QByteArray> dataList;
+    Util::decode(path,dataList);    //解密，将信息都存入dataList中
+    QTextCodec *tc=QTextCodec::codecForName("GBK");
+    int groupNum=dataList.at(0).toInt();    //得到群组数
+    int personNum=dataList.at(1+groupNum).toInt();
+    //根据文件内容构建群组
+    for(int i=1;i<1+groupNum;i++){
+        book->createGroup(dataList.at(i));
+    }
+    //根据文件内容构建联系人
+    for(int i=2+groupNum;i<2+groupNum+personNum*7;i=i+7){
+        QString name=tc->toUnicode(dataList.at(i));
+        int age=dataList.at(i+1).toInt();
+        int sex=dataList.at(i+2).toInt();
+        QString phone=tc->toUnicode(dataList.at(i+3));
+        QString area=tc->toUnicode(dataList.at(i+4));
+        QString remark=tc->toUnicode(dataList.at(i+5));
+        QString groupName=tc->toUnicode(dataList.at(i+6));
+        book->createPerson(name,age,sex,phone,area,remark,book->getGroupIndex(groupName));
+    }
+    return true;
 }

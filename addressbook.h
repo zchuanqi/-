@@ -23,12 +23,14 @@ public:
     AddressBook(QString name);
     ~AddressBook();     //析构函数中释放所包含的群组、联系人
     Group* getGroup(int index);         //返回群组，index是下标
+    int getGroupIndex(QString name);         //返回群组下标，name是名字
     bool createGroup(QString name);     //新建群组
     bool deleteGroup(int index);        //删除群组
     bool createPerson(QString name,int age,int sex,QString phone,QString area,QString remark,int groupIndex=-1);   //groupIndex为其目标群组索引，没有默认-1
     bool deletePerson(QString name);    //删除联系人
     PersonInTree* searchPerson(QString name); //根据姓名查找联系人
     PersonInTree* searchPersonByPhone(QString phone);   //根据电话查找联系人
+    QStringList searchPersons(QString str);     //根据姓名或电话得到联系人列表
     QStringList getGroupNameList();     //得到群组列表
     QStringList getPersonNameList();    //得到通讯录中所有联系人姓名构成的字符串列表
 

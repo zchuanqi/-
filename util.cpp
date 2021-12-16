@@ -1,5 +1,8 @@
 #include "util.h"
 #include<QByteArray>
+#include<QFile>
+#include<qdebug.h>
+
 Util::Util()
 {
 
@@ -68,12 +71,59 @@ QChar Util::getFirstLetter(QString str)
     return result.at(0);
 }
 
-QString Util::encryption(QString str)
+//加密文件
+void Util::encryption(QString path)
 {
-
+    QFile codedFile(path);
+    if(!codedFile.open(QIODevice::ReadWrite|QIODevice::Text))
+        return;
+    QByteArray data=codedFile.readAll().toBase64();
+    codedFile.seek(0);
+    codedFile.write(data);
+    codedFile.close();
 }
 
-QString Util::decode(QString str)
+void Util::decode(QString path,QList<QByteArray> &dataList)
 {
+    QFile file(path);
+    if(!file.open(QIODevice::ReadOnly|QIODevice::Text))
+        return;
+    QByteArray data=QByteArray::fromBase64(file.readAll());
+    dataList=data.split('\n');
+}
 
+//得到next数组
+void Util::getNext(QString p, int next[])
+{
+    int i=0,j=-1;
+    next[0]=-1;
+    while(i<p.length()-1){
+        if(j<0||p.at(i)==p.at(j)){
+            i++;
+            j++;
+            next[i]=(p.at(i)==p.at(j)?next[j]:j);
+        }
+        else
+            j=next[j];
+    }
+}
+
+//字符串模式匹配算法
+bool Util::KMP(QString data, QString search)
+{
+    int i=0,j=0;
+    int next[search.length()];
+    getNext(search,next);
+    while(i<data.length()&&j<search.length()){
+        if(j==-1||data.at(i)==search.at(j)){
+            i++;
+            j++;
+        }
+        else
+            j=next[j];
+    }
+    if(j>=search.length())
+        return true;
+    else
+        return false;
 }
