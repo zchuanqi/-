@@ -270,7 +270,7 @@ bool AddressBookManager::importAddressBook(QString path)
     int personNum=dataList.at(1+groupNum).toInt();
     //根据文件内容构建群组
     for(int i=1;i<1+groupNum;i++){
-        book->createGroup(dataList.at(i));
+        book->createGroup(tc->toUnicode(dataList.at(i)));
     }
     //根据文件内容构建联系人
     for(int i=2+groupNum;i<2+groupNum+personNum*7;i=i+7){
